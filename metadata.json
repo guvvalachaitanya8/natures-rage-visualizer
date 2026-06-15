@@ -1,0 +1,6 @@
+{
+  "name": "Nature's Destructive Phases",
+  "description": "An interactive, AI-powered 10-second visualization and simulation platform for major natural disasters.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
