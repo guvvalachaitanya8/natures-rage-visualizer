@@ -33,10 +33,14 @@ export default function App() {
     const loadConfig = async () => {
       try {
         const res = await fetch("/api/config");
-        const data = await res.json();
-        if (data.status === "success" && data.data) {
-          if (data.data.heroTitle) setHeroTitle(data.data.heroTitle);
-          if (data.data.heroDescription) setHeroDescription(data.data.heroDescription);
+        if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
+          const data = await res.json();
+          if (data.status === "success" && data.data) {
+            if (data.data.heroTitle) setHeroTitle(data.data.heroTitle);
+            if (data.data.heroDescription) setHeroDescription(data.data.heroDescription);
+          }
+        } else {
+          console.log("Using default configuration (server layout config endpoints are inactive).");
         }
       } catch (err) {
         console.warn("Could not connect to layout config store, using default content parameters.", err);
@@ -47,7 +51,10 @@ export default function App() {
     // Fire anonymous telemetry view load hit
     const trackHit = async () => {
       try {
-        await fetch("/api/analytics/track", { method: "POST" });
+        const res = await fetch("/api/analytics/track", { method: "POST" });
+        if (!res.ok) {
+          // quiet fail
+        }
       } catch (err) {
         // quiet fail
       }

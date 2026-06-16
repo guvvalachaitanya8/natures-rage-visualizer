@@ -226,6 +226,12 @@ export default function DisasterSimulator({ profile, onBack }: DisasterSimulator
           style: style,
         }),
       });
+      if (!response.ok) {
+        throw new Error(`Simulation request completed with status: ${response.status}`);
+      }
+      if (!response.headers.get("content-type")?.includes("application/json")) {
+        throw new Error("Server simulation endpoints are offline (did not return JSON).");
+      }
       const data = await response.json();
       
       if (data.status === "success") {
@@ -240,8 +246,8 @@ export default function DisasterSimulator({ profile, onBack }: DisasterSimulator
         throw new Error(data.message || "Failed to compile simulation data.");
       }
     } catch (err: any) {
-      console.error(err);
-      setConsoleLogs(prev => [...prev, `[ERROR] Failed to compile: ${err.message}. Using localized backup physics.`]);
+      console.warn("Simulator fetch warning:", err.message || err);
+      setConsoleLogs(prev => [...prev, `[INFO] Server compile bypassed: ${err.message || err}. Using localized backup physics.`]);
     } finally {
       setIsLoading(false);
     }
