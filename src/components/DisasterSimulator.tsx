@@ -54,15 +54,21 @@ export default function DisasterSimulator({ profile, onBack }: DisasterSimulator
     ]);
 
     try {
-      const response = await fetch("/api/simulate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          disasterType: profile.type,
-          intensity: option,
-          style: style,
-        }),
-      });
+      const response = await fetch(
+  "https://natures-rage-visualizer.onrender.com/api/simulate",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      disasterType: profile.type,
+      intensity: option,
+      style: style,
+    }),
+  }
+);
+      
       const data = await response.json();
       
       if (data.status === "success") {

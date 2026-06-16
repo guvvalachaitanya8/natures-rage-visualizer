@@ -17,7 +17,9 @@ export default function FeedbackSection() {
   // Fetch recent comments on load
   const loadFeedbacks = async () => {
     try {
-      const res = await fetch("/api/feedback");
+      const res = await fetch(
+  "https://natures-rage-visualizer.onrender.com/api/feedback"
+);
       const data = await res.json();
       if (data.status === "success") {
         setFeedbackList(data.data);
