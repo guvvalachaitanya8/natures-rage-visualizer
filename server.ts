@@ -1,11 +1,27 @@
 import express from "express";
 import path from "path";
+import cors from "cors";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import fs from "fs";
 
 const app = express();
 const PORT = 3000;
+
+app.use(
+  cors({
+    origin: [
+      "https://natures-rage-visualizer.vercel.app",
+      "http://localhost:3000",
+      "http://localhost:5173"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
+  })
+);
+
+app.options("*", cors());
 
 app.use(express.json());
 
