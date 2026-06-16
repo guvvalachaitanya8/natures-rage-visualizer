@@ -6,6 +6,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 import fs from "fs";
 
 const app = express();
+
+console.log("CORS CONFIG LOADED");
+
 const PORT = 3000;
 
 app.use(
