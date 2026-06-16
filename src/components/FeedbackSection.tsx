@@ -14,18 +14,22 @@ export default function FeedbackSection() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Fetch recent comments on load
-  const loadFeedbacks = async () => {
+  // Fetch recent comments on load with robust retry mechanism
+  const loadFeedbacks = async (retries = 3, delay = 1000) => {
     try {
-      const res = await fetch(
-  "https://natures-rage-visualizer.onrender.com/api/feedback"
-);
+      const res = await fetch("/api/feedback");
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       const data = await res.json();
       if (data.status === "success") {
         setFeedbackList(data.data);
       }
     } catch (err) {
-      console.error("Failed to load feedback from server:", err);
+      console.error(`Failed to load feedback from server (retries remaining: ${retries}):`, err);
+      if (retries > 0) {
+        setTimeout(() => loadFeedbacks(retries - 1, delay * 1.5), delay);
+      }
     }
   };
 

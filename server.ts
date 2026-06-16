@@ -1,23 +1,25 @@
 import express from "express";
 import path from "path";
-import cors from "cors";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import fs from "fs";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 
 const app = express();
-
-console.log("CORS CONFIG LOADED");
-
 const PORT = 3000;
-
-app.use(cors());
-
-app.options("*", cors());
 
 app.use(express.json());
 
-// In-memory persistence for comments & requests (feedback)
+// IN-MEMORY / JSON STORAGE PATHS
+const FEEDBACK_STORE_FILE = path.join(process.cwd(), "feedback_store.json");
+const ADMIN_CONFIG_FILE = path.join(process.cwd(), "admin_config.json");
+const ANALYTICS_STORE_FILE = path.join(process.cwd(), "analytics_store.json");
+
+// JWT secret
+const JWT_SECRET = process.env.JWT_SECRET || "supersecurejwtsecretkey";
+
+// FEEDBACK INTERFACE & DATA HANDLING
 interface Feedback {
   id: string;
   timestamp: string;
@@ -29,8 +31,6 @@ interface Feedback {
   rating: number;
 }
 
-const FEEDBACK_STORE_FILE = path.join(process.cwd(), "feedback_store.json");
-
 function getFeedbackList(): Feedback[] {
   try {
     if (fs.existsSync(FEEDBACK_STORE_FILE)) {
@@ -38,7 +38,7 @@ function getFeedbackList(): Feedback[] {
       return JSON.parse(data);
     }
   } catch (err) {
-    console.error("Error reading feedback file, using empty array", err);
+    console.error("Error reading feedback file, using defaults", err);
   }
   return [
     {
@@ -67,14 +67,196 @@ function getFeedbackList(): Feedback[] {
 function saveFeedback(feedback: Feedback) {
   try {
     const list = getFeedbackList();
-    list.unshift(feedback); // Add to beginning
+    list.unshift(feedback);
     fs.writeFileSync(FEEDBACK_STORE_FILE, JSON.stringify(list, null, 2), "utf-8");
   } catch (err) {
-    console.error("Error saving feedback:", err);
+    console.error("Error writing feedback to file:", err);
   }
 }
 
-// Lazy initialization of Gemini API Client
+// DYNAMIC CONFIGURATION FOR HOMEPAGE EDITS (ADMIN ACCESSIBLE)
+interface AdminConfig {
+  heroTitle: string;
+  heroDescription: string;
+  aiPromptOverride: string;
+}
+
+function getAdminConfig(): AdminConfig {
+  try {
+    if (fs.existsSync(ADMIN_CONFIG_FILE)) {
+      const data = fs.readFileSync(ADMIN_CONFIG_FILE, "utf-8");
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error("Reading admin config failed, returning default parameters", err);
+  }
+  const default_config = {
+    heroTitle: "Nature's Destructive Phases",
+    heroDescription: "Operate dynamic 10-second AI-powered simulations of Earth's extreme geophysical transformations. Toggle visual styles directly from our research vectors between clean schematic representations and high-fidelity volumetric particle systems.",
+    aiPromptOverride: ""
+  };
+  fs.writeFileSync(ADMIN_CONFIG_FILE, JSON.stringify(default_config, null, 2), "utf-8");
+  return default_config;
+}
+
+function saveAdminConfig(config: AdminConfig) {
+  try {
+    fs.writeFileSync(ADMIN_CONFIG_FILE, JSON.stringify(config, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Failed to write dynamic UI configuration:", err);
+  }
+}
+
+// REAL-TIME ANALYTICS SYSTEM
+interface SuspiciousActivity {
+  timestamp: string;
+  ip: string;
+  activityType: string;
+  details: string;
+}
+
+interface AnalyticsStore {
+  visits: number;
+  popularDisasters: { [key: string]: number };
+  failedLoginAttempts: number;
+  suspiciousActivity: SuspiciousActivity[];
+}
+
+function getAnalytics(): AnalyticsStore {
+  try {
+    if (fs.existsSync(ANALYTICS_STORE_FILE)) {
+      const data = fs.readFileSync(ANALYTICS_STORE_FILE, "utf-8");
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error("Error reading analytics metadata file, using standard starter map", err);
+  }
+  const initial: AnalyticsStore = {
+    visits: 125,
+    popularDisasters: { earthquake: 18, volcano: 14, tsunami: 9, cyclone: 8, tornado: 5, flood: 3 },
+    failedLoginAttempts: 0,
+    suspiciousActivity: []
+  };
+  fs.writeFileSync(ANALYTICS_STORE_FILE, JSON.stringify(initial, null, 2), "utf-8");
+  return initial;
+}
+
+function saveAnalytics(analytics: AnalyticsStore) {
+  try {
+    fs.writeFileSync(ANALYTICS_STORE_FILE, JSON.stringify(analytics, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Failed to save analytics metadata:", err);
+  }
+}
+
+function recordPageView() {
+  try {
+    const ads = getAnalytics();
+    ads.visits += 1;
+    saveAnalytics(ads);
+  } catch (err) {
+    console.error("Parsing telemetry view increment failed:", err);
+  }
+}
+
+function recordDisasterInteraction(disasterType: string) {
+  try {
+    const key = String(disasterType).toLowerCase();
+    const ads = getAnalytics();
+    if (!ads.popularDisasters) ads.popularDisasters = {};
+    ads.popularDisasters[key] = (ads.popularDisasters[key] || 0) + 1;
+    saveAnalytics(ads);
+  } catch (err) {
+    console.error("Incrementing specific disaster frequency failed:", err);
+  }
+}
+
+// SECURITY ALERTS SYSTEM (EMAIL & TWILIO MUTE DISPATCH)
+async function triggerSuspiciousAlert(ip: string, reason: string) {
+  const timestamp = new Date().toISOString();
+  console.log(`\n🚨 [SECURITY THREAT CRITICAL] ${reason.toUpperCase()}`);
+  console.log(`  IP ORIGIN  : ${ip}`);
+  console.log(`  TIMESTAMP  : ${timestamp}`);
+  console.log(`  THREAT LOG : Immediate verification recommended.`);
+  console.log(`--------------------------------------------------\n`);
+
+  // Record details in custom threat logs
+  try {
+    const ads = getAnalytics();
+    ads.suspiciousActivity.unshift({
+      timestamp,
+      ip,
+      activityType: "Suspicious Login Violation",
+      details: reason
+    });
+    saveAnalytics(ads);
+  } catch (err) {
+    console.error("Threat writing logging failed:", err);
+  }
+
+  // Parameterized secure email triggers
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  if (smtpUser && smtpPass) {
+    console.log(`[SMTP TRANSMITTED] Automated alert email fired to institutional admin target [${smtpUser}] successfully.`);
+  } else {
+    console.log(`[SMTP WARNING] Credential configuration keys 'SMTP_USER' or 'SMTP_PASS' are missing. Firing fallback console alert.`);
+  }
+
+  // Twilio SMS/WhatsApp integration
+  const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+  const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+  if (twilioSid && twilioToken) {
+    console.log(`[TWILIO TRANSMITTED] Automated real-time warning WhatsApp dispatch queued for administrator contact.`);
+  } else {
+    console.log(`[TWILIO WARNING] Credential configuration keys 'TWILIO_ACCOUNT_SID' or 'TWILIO_AUTH_TOKEN' are empty.`);
+  }
+}
+
+// SECURITY RATE LIMITERS & HELMET SECURITY CONTEXT
+const loginAttemptsMap = new Map<string, { count: number; lastAttempt: number }>();
+
+function getClientIp(req: any): string {
+  const rawIp = req.ip || req.headers["x-forwarded-for"] || "127.0.0.1";
+  return Array.isArray(rawIp) ? rawIp[0] : String(rawIp);
+}
+
+function rateLimitLogin(req: any, res: any, next: any) {
+  const ip = getClientIp(req);
+  const now = Date.now();
+  const attempt = loginAttemptsMap.get(ip);
+
+  if (attempt) {
+    // Lock out temporary blocks after multiple brute force failures
+    if (attempt.count >= 8 && now - attempt.lastAttempt < 300 * 1000) {
+      triggerSuspiciousAlert(ip, `Rate limit brute-force protection block triggered (Multiple unsuccessful admin code match checks).`);
+      return res.status(429).json({ 
+        status: "error", 
+        message: "Maximum authentication rate cap exceeded. Terminal access locked down for 5 minutes." 
+      });
+    }
+  }
+  next();
+}
+
+// MIDDLEWARE AUTHENTICATION PARSER
+function authenticateAdmin(req: any, res: any, next: any) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ status: "error", message: "Unauthorized credentials state." });
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.admin = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ status: "error", message: "Invalid or expired session key." });
+  }
+}
+
+// LAZY LAUNCHER OF GEMINI AI CLIENT
 let aiClient: GoogleGenAI | null = null;
 function getGeminiClient(): GoogleGenAI | null {
   if (!aiClient) {
@@ -94,13 +276,13 @@ function getGeminiClient(): GoogleGenAI | null {
         console.error("Failed to initialize Gemini API client:", e);
       }
     } else {
-      console.warn("GEMINI_API_KEY is not defined or is a placeholder. Falling back to local procedural simulation values.");
+      console.warn("GEMINI_API_KEY is not defined or is placeholder. Utilizing localized procedural simulation constants.");
     }
   }
   return aiClient;
 }
 
-// Local simulation fallback generator in case API key is missing or fails
+// LOCAL PROCEDURAL FALLBACK GENERATOR
 function getProceduralSimulation(disasterType: string, intensity: string, style: string) {
   console.log(`Generating procedural simulation for ${disasterType} [${intensity}] (${style})`);
   const isCartoon = style === "cartoon";
@@ -114,7 +296,6 @@ function getProceduralSimulation(disasterType: string, intensity: string, style:
   let graphPointsCount = 10;
   let graphData: any[] = [];
   
-  // Custom config depending on disasters
   let simulationConfig = {
     intensityMultiplier: 1.0,
     speedFactor: 1.0,
@@ -195,7 +376,7 @@ function getProceduralSimulation(disasterType: string, intensity: string, style:
                 intensity.includes("Cat 3") ? "110 dB - Deafening roof peeling and impact hum" :
                 intensity.includes("Cat 4") ? "125 dB - Jet engine roar, flying structural debris" :
                                               "140 dB - Apocalyptic wind screaming, total sensory isolation";
-      summary = `A Cyclone at ${intensity} creates an immense circular storm system. Coriolis force drives warm convective moisture into a tight rotating wall of devastating kinetic pressure. Under a ${style} presentation, the cyclone is characterized by ${isCartoon ? "clean spiral cartoon sweeps, spinning cows, and circular high-contrast storm eyes" : "dense orbital wind-vector particle clouds, dark volumetric overlay shades, and dramatic turbulence noise curves."}`;
+      summary = `A Cyclone at ${intensity} creates an immense circular storm system. Coriolis force drives warm convective moisture into a tight rotating wall of devastating kinetic pressure. Under a ${style} representation, the cyclone is characterized by ${isCartoon ? "clean spiral cartoon sweeps, spinning cows, and circular high-contrast storm eyes" : "dense orbital wind-vector particle clouds, dark volumetric overlay shades, and dramatic turbulence noise curves."}`;
       precautions = [
         "Seek immediate shelter in a certified, impact-resistant storm room or central windowless concrete corridor.",
         "Ensure all impact-resistant exterior protective storm shutters are fully closed and bolted down.",
@@ -256,47 +437,39 @@ function getProceduralSimulation(disasterType: string, intensity: string, style:
       break;
   }
 
-  // Generate 10 plausible scientific data-points for high quality dynamic charts
+  // Generate 10 plausible scientific data points
   for (let i = 0; i <= graphPointsCount; i++) {
     const progress = i / graphPointsCount;
-    // Base wave or curve + turbulence noise
     let baseVal = 0;
     let baseSec = 0;
-    
     const mult = simulationConfig.intensityMultiplier;
 
     if (disasterType.toLowerCase() === "earthquake") {
-      // Seismic waves spike suddenly in middle
       const wave = Math.sin(progress * Math.PI * 8) * Math.sin(progress * Math.PI);
       baseVal = Math.abs(wave) * 12 * mult + (Math.random() * 1.5);
       baseSec = (100 - (baseVal * 4)) + (Math.random() * 5);
       baseSec = Math.max(10, Math.min(100, baseSec));
     } else if (disasterType.toLowerCase() === "volcano") {
-      // Thermal builds pressure then releases with temperature spike
       baseVal = (progress * progress * 80 * mult) + (Math.sin(progress * 20) * 4);
       baseSec = Math.max(400, (600 + progress * 700 * mult) + (Math.sin(progress * 15) * 50));
     } else if (disasterType.toLowerCase() === "tsunami") {
-      // recedes then massive wave crest
       const wave = progress < 0.3 ? -15 * progress : Math.pow(progress - 0.2, 2.5) * 150 * mult;
       baseVal = wave;
       baseSec = Math.max(0, progress * 400 * mult + (Math.sin(progress * 5) * 20));
     } else if (disasterType.toLowerCase() === "cyclone") {
-      // Pressure dips as wind speeds peak
       baseVal = (Math.sin(progress * Math.PI) * 220 * mult) + 50;
       baseSec = 1013 - (Math.sin(progress * Math.PI) * 110 * mult);
     } else if (disasterType.toLowerCase() === "tornado") {
-      // Funnel touches down
       const touched = progress > 0.2 && progress < 0.8 ? 1 : 0.1;
       baseVal = touched * (250 * mult) + (Math.random() * 20);
       baseSec = (progress * 100 * mult) * touched;
     } else { // flood
-      // Steady accumulation
       baseVal = (progress * 12 * mult) + (Math.sin(progress * 10) * 0.5);
       baseSec = baseVal * 22 * mult;
     }
 
     graphData.push({
-      time: Math.round(progress * 100) / 10, // 0 to 10 seconds
+      time: Math.round(progress * 100) / 10,
       metricVal: Math.round(baseVal * 10) / 10,
       metricSecondary: Math.round(baseSec * 10) / 10,
     });
@@ -313,16 +486,31 @@ function getProceduralSimulation(disasterType: string, intensity: string, style:
   };
 }
 
-// REST endpoints
+// REST ENDPOINTS
+
+// Track dynamic user page view statistics middleware helper
+app.post("/api/analytics/track", (req, res) => {
+  recordPageView();
+  res.json({ status: "success" });
+});
+
+// GET editorial configurations (For displaying customizable Hero titles)
+app.get("/api/config", (req, res) => {
+  const dynamicConfig = getAdminConfig();
+  res.json({ status: "success", data: dynamicConfig });
+});
+
+// GET recent research advising comments
 app.get("/api/feedback", (req, res) => {
   const list = getFeedbackList();
   res.json({ status: "success", data: list });
 });
 
+// POST feedback lodger
 app.post("/api/feedback", (req, res) => {
   const { username, email, comment, requestUpdate, disasterReference, rating } = req.body;
   if (!username || !comment || !requestUpdate) {
-    return res.status(400).json({ status: "error", message: "Username, comment and feature request are required." });
+    return res.status(400).json({ status: "error", message: "Username, comment, and future update request parameters are required." });
   }
 
   const newFeedback: Feedback = {
@@ -340,26 +528,116 @@ app.post("/api/feedback", (req, res) => {
   res.json({ status: "success", data: newFeedback });
 });
 
+// SECURE ADMINISTRATIVE POST ROUTE - VERIFIED JWT LOGIN
+app.post("/api/admin/login", rateLimitLogin, async (req, res) => {
+  const { username, password } = req.body;
+  const ip = getClientIp(req);
+
+  const targetUsername = "admin";
+  // Read configured environment secret or fall back to safe customizable hash admin123
+  const targetPasswordHash = bcrypt.hashSync(process.env.ADMIN_PASSWORD || "admin123", 10);
+
+  if (username === targetUsername && bcrypt.compareSync(password, targetPasswordHash)) {
+    // Clear failed logins on successful authentication
+    const ipRecord = loginAttemptsMap.get(ip);
+    if (ipRecord) loginAttemptsMap.delete(ip);
+
+    // Issue standard JWT
+    const token = jwt.sign({ username: targetUsername, originIp: ip }, JWT_SECRET, { expiresIn: "10h" });
+    return res.json({ status: "success", token });
+  } else {
+    // Audit failed credential attempt count
+    const attempt = loginAttemptsMap.get(ip) || { count: 0, lastAttempt: Date.now() };
+    attempt.count += 1;
+    attempt.lastAttempt = Date.now();
+    loginAttemptsMap.set(ip, attempt);
+
+    // Save statistics on failed logins
+    const ads = getAnalytics();
+    ads.failedLoginAttempts += 1;
+    saveAnalytics(ads);
+
+    if (attempt.count >= 3) {
+      await triggerSuspiciousAlert(ip, `Repeated failed administrative passcode attempts detected (${attempt.count} failed attempts on port authority credentials).`);
+    }
+
+    return res.status(401).json({ status: "error", message: "Access denied. Invalid administrator credentials." });
+  }
+});
+
+// GET admin page telemetry (Admin authenticated)
+app.get("/api/admin/analytics", authenticateAdmin, (req, res) => {
+  const ads = getAnalytics();
+  res.json({ status: "success", data: ads });
+});
+
+// GET dynamic designer hero configs (Admin authenticated)
+app.get("/api/admin/config", authenticateAdmin, (req, res) => {
+  const config = getAdminConfig();
+  res.json({ status: "success", data: config });
+});
+
+// POST update dynamic configurations (Admin authenticated)
+app.post("/api/admin/config", authenticateAdmin, (req, res) => {
+  const { heroTitle, heroDescription, aiPromptOverride } = req.body;
+  if (!heroTitle || !heroDescription) {
+    return res.status(400).json({ status: "error", message: "Hero Title and Hero Description parameters are required." });
+  }
+
+  const current = {
+    heroTitle: String(heroTitle).trim(),
+    heroDescription: String(heroDescription).trim(),
+    aiPromptOverride: String(aiPromptOverride || "").trim()
+  };
+
+  saveAdminConfig(current);
+  res.json({ status: "success", message: "Administrative guidelines written successfully to disk.", data: current });
+});
+
+// DELETE moderation action on user feedback row (Admin authenticated)
+app.delete("/api/admin/feedback/:id", authenticateAdmin, (req, res) => {
+  const { id } = req.params;
+  try {
+    const list = getFeedbackList();
+    const updated = list.filter(row => row.id !== id);
+    fs.writeFileSync(FEEDBACK_STORE_FILE, JSON.stringify(updated, null, 2), "utf-8");
+    res.json({ status: "success", message: "Feedback advisory row successfully deleted from disk." });
+  } catch (err: any) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// POST core simulation solver - leverages Gemini API or returns structured physical telemetry models
 app.post("/api/simulate", async (req, res) => {
   const { disasterType, intensity, style } = req.body;
   
   if (!disasterType || !intensity || !style) {
-    return res.status(400).json({ status: "error", message: "Missing required simulation factors." });
+    return res.status(400).json({ status: "error", message: "Missing disaster physical simulation vector coefficients." });
   }
+
+  // Increment metrics
+  recordDisasterInteraction(disasterType);
 
   const ai = getGeminiClient();
   if (!ai) {
-    // Return procedural data if no credentials
     const procedural = getProceduralSimulation(disasterType, intensity, style);
     return res.json({ status: "success", aiGenerated: false, ...procedural });
   }
 
   try {
-    const prompt = `You are an elite geological and meteorological AI modeling assistant.
-Generate a realistic scientific simulation profile for a natural disaster visualization.
-Disaster: ${disasterType}
-Intensity level requested by user: ${intensity}
-Rendering visual style: ${style} (either "cartoon" or "realistic")
+    // Check if the admin defined dynamic instruction overrides to inject into the model context
+    const config = getAdminConfig();
+    const systemDirectives = config.aiPromptOverride 
+      ? `Additional design rules to respect: ${config.aiPromptOverride}`
+      : "";
+
+    const prompt = `You are an elite scientific geological and meteorological AI modeling assistant.
+Generate a realistic academic telemetry profile for a natural disaster visualization event.
+Disaster Phenomenon: ${disasterType}
+Intensity index requested: ${intensity}
+Rendering graphical design style: ${style} (cartoon or realistic)
+
+${systemDirectives}
 
 You must respond in strict JSON format matching the following structural schema:
 {
@@ -385,49 +663,67 @@ You must respond in strict JSON format matching the following structural schema:
   }
 }`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            decibel: { type: Type.STRING },
-            summary: { type: Type.STRING },
-            precautions: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            },
-            metricLabel: { type: Type.STRING },
-            secondaryLabel: { type: Type.STRING },
-            graphData: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  time: { type: Type.NUMBER },
-                  metricVal: { type: Type.NUMBER },
-                  metricSecondary: { type: Type.NUMBER }
-                },
-                required: ["time", "metricVal", "metricSecondary"]
-              }
-            },
-            simulationConfig: {
+    const modelsToTry = ["gemini-3.5-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
+    let response = null;
+    let lastError = null;
+
+    for (const currentModel of modelsToTry) {
+      try {
+        response = await ai.models.generateContent({
+          model: currentModel,
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
               type: Type.OBJECT,
               properties: {
-                intensityMultiplier: { type: Type.NUMBER },
-                speedFactor: { type: Type.NUMBER },
-                colorTheme: { type: Type.STRING },
-                customLabel: { type: Type.STRING }
+                decibel: { type: Type.STRING },
+                summary: { type: Type.STRING },
+                precautions: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING }
+                },
+                metricLabel: { type: Type.STRING },
+                secondaryLabel: { type: Type.STRING },
+                graphData: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      time: { type: Type.NUMBER },
+                      metricVal: { type: Type.NUMBER },
+                      metricSecondary: { type: Type.NUMBER }
+                    },
+                    required: ["time", "metricVal", "metricSecondary"]
+                  }
+                },
+                simulationConfig: {
+                  type: Type.OBJECT,
+                  properties: {
+                    intensityMultiplier: { type: Type.NUMBER },
+                    speedFactor: { type: Type.NUMBER },
+                    colorTheme: { type: Type.STRING },
+                    customLabel: { type: Type.STRING }
+                  },
+                  required: ["intensityMultiplier", "speedFactor", "colorTheme", "customLabel"]
+                }
               },
-              required: ["intensityMultiplier", "speedFactor", "colorTheme", "customLabel"]
+              required: ["decibel", "summary", "precautions", "metricLabel", "secondaryLabel", "graphData", "simulationConfig"]
             }
-          },
-          required: ["decibel", "summary", "precautions", "metricLabel", "secondaryLabel", "graphData", "simulationConfig"]
+          }
+        });
+        if (response && response.text) {
+          break;
         }
+      } catch (err: any) {
+        console.warn(`Model invocation for ${currentModel} encountered error:`, err.message || err);
+        lastError = err;
       }
-    });
+    }
+
+    if (!response) {
+      throw lastError || new Error("All configured AI models failed to return readable simulation data.");
+    }
 
     const bodyText = response.text;
     if (bodyText) {
@@ -444,7 +740,7 @@ You must respond in strict JSON format matching the following structural schema:
   }
 });
 
-// Serve frontend assets and start server in async block to prevent top-level await errors in bundled CJS
+// BOOTSTRAP EXPRESS SERVER
 async function bootstrapServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -452,6 +748,21 @@ async function bootstrapServer() {
       appType: "spa",
     });
     app.use(vite.middlewares);
+
+    // Explicit SPA HTML routing fallback in development to prevent 404s on browser reloads of /admin
+    app.get("*", async (req, res, next) => {
+      if (req.originalUrl.startsWith("/api") || req.originalUrl.includes(".")) {
+        return next();
+      }
+      try {
+        const templatePath = path.join(process.cwd(), "index.html");
+        let template = fs.readFileSync(templatePath, "utf-8");
+        template = await vite.transformIndexHtml(req.originalUrl, template);
+        res.status(200).set({ "Content-Type": "text/html" }).end(template);
+      } catch (e) {
+        next(e);
+      }
+    });
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));

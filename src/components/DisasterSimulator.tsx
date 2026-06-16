@@ -25,6 +25,169 @@ export default function DisasterSimulator({ profile, onBack }: DisasterSimulator
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [simResult, setSimResult] = useState<SimulationResult | null>(null);
   
+  // Real-time search & validation states
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchError, setSearchError] = useState<string>("");
+  const [customMagnitude, setCustomMagnitude] = useState<string>("");
+  const [customError, setCustomError] = useState<string>("");
+
+  // Sync state parameters when profile shifts
+  useEffect(() => {
+    setSearchQuery("");
+    setSearchError("");
+    setCustomMagnitude("");
+    setCustomError("");
+    // Guard against potential out of bounds or empty options array
+    if (profile.options && profile.options.length > 2) {
+      setSelectedOption(profile.options[2]);
+    } else if (profile.options && profile.options.length > 0) {
+      setSelectedOption(profile.options[0]);
+    }
+  }, [profile.type]);
+
+  const getExampleValue = (type: string) => {
+    switch (type) {
+      case "earthquake": return "7.5 (Richter)";
+      case "volcano": return "950 (°C)";
+      case "tsunami": return "25 (meters)";
+      case "cyclone": return "4 (Category)";
+      case "tornado": return "3 (EF)";
+      case "flood": return "8.5 (feet)";
+      default: return "5";
+    }
+  };
+
+  const validateCustomMagnitude = (val: string, type: string) => {
+    if (!val.trim()) {
+      return "";
+    }
+
+    // Extract numeric prefix or number
+    let cleanVal = val.trim()
+      .replace(/ Richter/gi, "")
+      .replace(/m/gi, "")
+      .replace(/ft/gi, "")
+      .replace(/°C/gi, "")
+      .replace(/C/gi, "")
+      .replace(/EF/gi, "")
+      .replace(/Cat /gi, "")
+      .replace(/Cat/gi, "")
+      .trim();
+
+    const num = Number(cleanVal);
+
+    if (isNaN(num)) {
+      return "Error: Input must be a valid numeric intensity value. Special characters or letters are not allowed.";
+    }
+
+    switch (type) {
+      case "earthquake":
+        if (num < 0.1 || num > 10.0) {
+          return "Error: Earthquake magnitude must be a number between 0.1 and 10.0 on the Richter scale.";
+        }
+        break;
+      case "volcano":
+        if (num < 100 || num > 3000) {
+          return "Error: Volcano temperature must be a number between 100°C and 3000°C.";
+        }
+        break;
+      case "tsunami":
+        if (num < 0.5 || num > 150) {
+          return "Error: Tsunami wave height must be a number between 0.5m and 150m.";
+        }
+        break;
+      case "flood":
+        if (num < 0.5 || num > 120) {
+          return "Error: Flood inundation depth must be a number between 0.5 and 120 feet.";
+        }
+        break;
+      case "cyclone":
+        if (num >= 1 && num <= 5) {
+          // Valid category
+        } else if (num >= 74 && num <= 400) {
+          // Valid km/h wind speed
+        } else {
+          return "Error: Cyclone intensity must be a Saffir-Simpson category (1-5) or speed (74-400 km/h).";
+        }
+        break;
+      case "tornado":
+        if (num >= 0 && num <= 5) {
+          // Valid EF Category
+        } else if (num >= 100 && num <= 500) {
+          // Valid wind speed
+        } else {
+          return "Error: Tornado scale must be an EF Category (0-5) or wind speed (100-500 km/h).";
+        }
+        break;
+      default:
+        if (num <= 0) {
+          return "Error: Please enter a positive number.";
+        }
+    }
+
+    return "";
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setSearchError("");
+      return;
+    }
+    
+    const matches = profile.options.filter(opt => 
+      opt.toLowerCase().includes(query.toLowerCase())
+    );
+    
+    if (matches.length === 0) {
+      setSearchError(`No predefined options match "${query}". Enter a custom magnitude on the right if needed.`);
+    } else {
+      setSearchError("");
+    }
+  };
+
+  const handleCustomMagnitudeChange = (val: string) => {
+    setCustomMagnitude(val);
+    const err = validateCustomMagnitude(val, profile.type);
+    setCustomError(err);
+  };
+
+  const handleApplyCustomMagnitude = () => {
+    const err = validateCustomMagnitude(customMagnitude, profile.type);
+    if (err) {
+      setCustomError(err);
+      return;
+    }
+
+    let cleanVal = customMagnitude.trim()
+      .replace(/ Richter/gi, "")
+      .replace(/m/gi, "")
+      .replace(/ft/gi, "")
+      .replace(/°C/gi, "")
+      .replace(/C/gi, "")
+      .replace(/EF/gi, "")
+      .replace(/Cat /gi, "")
+      .replace(/Cat/gi, "")
+      .trim();
+
+    let suffix = "";
+    if (profile.type === "earthquake") suffix = " Richter";
+    else if (profile.type === "volcano") suffix = "°C";
+    else if (profile.type === "tsunami") suffix = "m Wave";
+    else if (profile.type === "flood") suffix = " ft";
+    else if (profile.type === "cyclone") {
+      const valNum = Number(cleanVal);
+      suffix = valNum <= 5 ? ` (Cat ${valNum})` : " km/h";
+    }
+    else if (profile.type === "tornado") {
+      const valNum = Number(cleanVal);
+      suffix = valNum <= 5 ? ` (EF${valNum})` : " km/h";
+    }
+
+    setSelectedOption(`${cleanVal}${suffix}`);
+    setConsoleLogs(prev => [...prev, `[USER] Applied custom ${profile.parameterName}: ${cleanVal}${suffix}`]);
+  };
+
   // Player control state
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0.0); // 0.0 to 10.0 seconds
@@ -54,21 +217,15 @@ export default function DisasterSimulator({ profile, onBack }: DisasterSimulator
     ]);
 
     try {
-      const response = await fetch(
-  "https://natures-rage-visualizer.onrender.com/api/simulate",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      disasterType: profile.type,
-      intensity: option,
-      style: style,
-    }),
-  }
-);
-      
+      const response = await fetch("/api/simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          disasterType: profile.type,
+          intensity: option,
+          style: style,
+        }),
+      });
       const data = await response.json();
       
       if (data.status === "success") {
@@ -1276,21 +1433,96 @@ export default function DisasterSimulator({ profile, onBack }: DisasterSimulator
             <Info className="h-4 w-4 text-slate-400" />
             Step 1: Select {profile.parameterName} to Visualize ({profile.unitLabel})
           </label>
-          <div className="flex flex-wrap gap-2.5">
-            {profile.options.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => setSelectedOption(opt)}
-                className={`px-4 py-2.5 text-xs font-semibold rounded-xl border transition-all duration-200 ${
-                  selectedOption === opt
-                    ? "bg-white text-slate-950 border-white shadow-lg"
-                    : "bg-slate-950 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700"
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
+
+          {/* Search / Filter and Custom Value inputs with Real-time Validations */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+            {/* Search filter column */}
+            <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-850">
+              <span className="text-[10px] text-slate-500 font-mono uppercase font-bold tracking-wider block mb-2">Search Level Options</span>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder={`Filter options e.g. "Cat 3" or ">30m"...`}
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className={`w-full px-3 py-2 text-xs bg-slate-950 text-slate-100 border rounded-lg focus:outline-none placeholder-slate-600 transition-colors ${
+                    searchError ? "border-rose-500 focus:border-rose-600" : "border-slate-800"
+                  }`}
+                />
+                {searchQuery && (
+                  <button 
+                    onClick={() => handleSearchChange("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded font-mono"
+                  >
+                    CLEAR
+                  </button>
+                )}
+              </div>
+              {searchError && (
+                <p className="text-[11px] text-rose-500 mt-2 flex items-center gap-1 font-sans">
+                  <AlertTriangle className="h-3.5 w-3.5 text-rose-500 flex-shrink-0" />
+                  {searchError}
+                </p>
+              )}
+            </div>
+
+            {/* Custom magnitude input column */}
+            <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-850">
+              <span className="text-[10px] text-slate-500 font-mono uppercase font-bold tracking-wider block mb-2">Or Enter Custom Numeric {profile.parameterName}</span>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder={`E.g. ${getExampleValue(profile.type)}`}
+                  value={customMagnitude}
+                  onChange={(e) => handleCustomMagnitudeChange(e.target.value)}
+                  className={`flex-1 px-3 py-2 text-xs bg-slate-950 text-slate-100 border rounded-lg focus:outline-none placeholder-slate-600 transition-colors ${
+                    customError ? "border-rose-500 focus:border-rose-500" : "border-slate-800"
+                  }`}
+                />
+                <button
+                  onClick={handleApplyCustomMagnitude}
+                  disabled={!!customError || !customMagnitude.trim()}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all duration-150 ${
+                    customError || !customMagnitude.trim()
+                      ? "bg-slate-900 border border-slate-850 text-slate-500 cursor-not-allowed"
+                      : "bg-emerald-650 hover:bg-emerald-600 border border-emerald-505 hover:border-emerald-400 text-white shadow"
+                  }`}
+                >
+                  APPLY
+                </button>
+              </div>
+              {customError ? (
+                <p className="text-[11px] text-rose-500 mt-2 flex items-center gap-1 font-sans">
+                  <AlertTriangle className="h-3.5 w-3.5 text-rose-500 flex-shrink-0" />
+                  {customError}
+                </p>
+              ) : (
+                <p className="text-[10px] text-slate-500 font-mono mt-2">
+                  Inputs are strictly type-validated for numeric safety to protect downstream telemetry.
+                </p>
+              )}
+            </div>
           </div>
+
+          {/* Preset options mapped (filtered by search query) */}
+          <div className="flex flex-wrap gap-2.5">
+            {profile.options
+              .filter(opt => opt.toLowerCase().includes(searchQuery.toLowerCase()))
+              .map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => setSelectedOption(opt)}
+                  className={`px-4 py-2.5 text-xs font-semibold rounded-xl border transition-all duration-200 ${
+                    selectedOption === opt
+                      ? "bg-white text-slate-950 border-white shadow-lg"
+                      : "bg-slate-950 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700"
+                  }`}
+                >
+                  {opt}
+                </button>
+              ))}
+          </div>
+
           <p className="text-[10px] text-slate-500 font-mono mt-3">
             Every dynamic selection compiles automated vector calculations and updates physical constants on-screen.
           </p>
