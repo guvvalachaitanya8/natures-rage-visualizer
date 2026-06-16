@@ -10,6 +10,7 @@ import { AboutView, PrivacyView, ContactView } from "./components/AboutPrivacyCo
 import { DISASTER_PROFILES } from "./data";
 import { DisasterProfile } from "./types";
 import { Sparkles, Compass, HelpCircle, Shield, Mail } from "lucide-react";
+import { apiFetch } from "./utils/api";
 
 export default function App() {
   const [currentView, setCurrentView] = useState<"home" | "about" | "privacy" | "contact" | "admin">("home");
@@ -32,7 +33,7 @@ export default function App() {
     // Fetch live configurations to display homepage edits instantly
     const loadConfig = async () => {
       try {
-        const res = await fetch("/api/config");
+        const res = await apiFetch("/api/config");
         if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
           const data = await res.json();
           if (data.status === "success" && data.data) {
@@ -51,7 +52,7 @@ export default function App() {
     // Fire anonymous telemetry view load hit
     const trackHit = async () => {
       try {
-        const res = await fetch("/api/analytics/track", { method: "POST" });
+        const res = await apiFetch("/api/analytics/track", { method: "POST" });
         if (!res.ok) {
           // quiet fail
         }

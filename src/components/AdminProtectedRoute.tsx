@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Lock, AlertTriangle, ArrowRight, Zap, Shield } from "lucide-react";
+import { apiFetch } from "../utils/api";
 
 interface AdminProtectedRouteProps {
   children: React.ReactElement;
@@ -28,7 +29,7 @@ export default function AdminProtectedRoute({ children, onBack, onAuthenticated 
     setIsSubmitting(true);
 
     try {
-      const res = await fetch("/api/admin/login", {
+      const res = await apiFetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })

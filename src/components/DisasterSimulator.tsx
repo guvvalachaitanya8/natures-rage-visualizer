@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { DisasterProfile, VisualStyle, SimulationResult, SimulationGraphPoint } from "../types";
+import { apiFetch } from "../utils/api";
 import { 
   ArrowLeft, 
   Play, 
@@ -217,7 +218,7 @@ export default function DisasterSimulator({ profile, onBack }: DisasterSimulator
     ]);
 
     try {
-      const response = await fetch("/api/simulate", {
+      const response = await apiFetch("/api/simulate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

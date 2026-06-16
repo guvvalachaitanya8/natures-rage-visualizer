@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Feedback } from "../types";
 import { MessageSquare, Send, Sparkles, Star, User, Mail, PlusCircle } from "lucide-react";
+import { apiFetch } from "../utils/api";
 
 export default function FeedbackSection() {
   const [feedbackList, setFeedbackList] = useState<Feedback[]>([]);
@@ -17,7 +18,7 @@ export default function FeedbackSection() {
   // Fetch recent comments on load with robust retry mechanism
   const loadFeedbacks = async (retries = 3, delay = 1000) => {
     try {
-      const res = await fetch("/api/feedback");
+      const res = await apiFetch("/api/feedback");
       if (res.status === 404) {
         console.log("Feedback API is currently inactive or not configured in this environment (404 Not Found). Retrying skipped.");
         return;
@@ -55,7 +56,7 @@ export default function FeedbackSection() {
     setMessage(null);
 
     try {
-      const res = await fetch("/api/feedback", {
+      const res = await apiFetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

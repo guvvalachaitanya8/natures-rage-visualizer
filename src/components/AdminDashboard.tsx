@@ -20,6 +20,7 @@ import {
   Server
 } from "lucide-react";
 import { Feedback } from "../types";
+import { apiFetch } from "../utils/api";
 
 interface AdminDashboardProps {
   onBack: () => void;
@@ -80,7 +81,7 @@ export default function AdminDashboard({ onBack, onLogout }: AdminDashboardProps
   const fetchDashboardData = async (token: string, retries = 3, delay = 1000) => {
     try {
       // Fetch Config
-      const configRes = await fetch("/api/admin/config", {
+      const configRes = await apiFetch("/api/admin/config", {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (configRes.status === 404) {
@@ -95,7 +96,7 @@ export default function AdminDashboard({ onBack, onLogout }: AdminDashboardProps
       }
 
       // Fetch Analytics
-      const analyticsRes = await fetch("/api/admin/analytics", {
+      const analyticsRes = await apiFetch("/api/admin/analytics", {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (analyticsRes.ok && analyticsRes.headers.get("content-type")?.includes("application/json")) {
@@ -106,7 +107,7 @@ export default function AdminDashboard({ onBack, onLogout }: AdminDashboardProps
       }
 
       // Fetch Feedbacks
-      const feedbacksRes = await fetch("/api/feedback");
+      const feedbacksRes = await apiFetch("/api/feedback");
       if (feedbacksRes.ok && feedbacksRes.headers.get("content-type")?.includes("application/json")) {
         const feedbacksData = await feedbacksRes.json();
         if (feedbacksData.status === "success") {
@@ -127,7 +128,7 @@ export default function AdminDashboard({ onBack, onLogout }: AdminDashboardProps
     setIsSubmitting(true);
 
     try {
-      const res = await fetch("/api/admin/login", {
+      const res = await apiFetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
@@ -162,7 +163,7 @@ export default function AdminDashboard({ onBack, onLogout }: AdminDashboardProps
     if (!token) return;
 
     try {
-      const res = await fetch("/api/admin/config", {
+      const res = await apiFetch("/api/admin/config", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -200,7 +201,7 @@ export default function AdminDashboard({ onBack, onLogout }: AdminDashboardProps
     }
 
     try {
-      const res = await fetch(`/api/admin/feedback/${id}`, {
+      const res = await apiFetch(`/api/admin/feedback/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
