@@ -76,17 +76,6 @@ export default function NatureNavbar({ currentView, onNavigate }: NatureNavbarPr
               <span>Contact</span>
             </button>
 
-            <button
-              onClick={() => onNavigate("admin")}
-              className={`flex items-center space-x-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                currentView === "admin"
-                  ? "bg-slate-900 border border-slate-800 text-[#f59e0b]"
-                  : "text-slate-500 hover:text-[#f59e0b] hover:bg-slate-900/50"
-              }`}
-            >
-              <Lock className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Admin</span>
-            </button>
           </nav>
         </div>
       </div>

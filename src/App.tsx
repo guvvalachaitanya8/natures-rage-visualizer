@@ -13,7 +13,34 @@ import { Sparkles, Compass, HelpCircle, Shield, Mail } from "lucide-react";
 import { apiFetch } from "./utils/api";
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<"home" | "about" | "privacy" | "contact" | "admin">("home");
+  const [currentView, setCurrentView] = useState<"home" | "about" | "privacy" | "contact" | "admin">(() => {
+    if (typeof window !== "undefined") {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      const urlParams = new URLSearchParams(window.location.search);
+
+      // Check for secret trigger
+      const hasSecretKey = 
+        urlParams.get("portal") === "chaitanya-private-admin" ||
+        urlParams.get("admin_key") === "guvvalachaitanya8" ||
+        urlParams.get("user") === "guvvalachaitanya8" ||
+        hash.includes("chaitanya-admin-portal") ||
+        hash.includes("portal-guvvala");
+
+      if (hasSecretKey) {
+        localStorage.setItem("device_authorized_admin", "true");
+        return "admin";
+      }
+
+      const isAuthorized = localStorage.getItem("device_authorized_admin") === "true";
+      if (isAuthorized) {
+        if (path === "/admin" || hash === "#admin" || hash === "/admin" || path.startsWith("/admin")) {
+          return "admin";
+        }
+      }
+    }
+    return "home";
+  });
   const [activeDisaster, setActiveDisaster] = useState<DisasterProfile | null>(null);
 
   // Dynamic layout texts fetched from admin configuration store
@@ -24,10 +51,37 @@ export default function App() {
 
   // Handle Dynamic Editorial Configuration & Page View Tracking
   useEffect(() => {
-    // Check if URL pattern starts with administrative console hash
-    if (window.location.pathname === "/admin" || window.location.hash === "#admin" || window.location.hash === "/admin") {
-      setCurrentView("admin");
-      setActiveDisaster(null);
+    if (typeof window !== "undefined") {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      const urlParams = new URLSearchParams(window.location.search);
+
+      const hasSecretKey = 
+        urlParams.get("portal") === "chaitanya-private-admin" ||
+        urlParams.get("admin_key") === "guvvalachaitanya8" ||
+        urlParams.get("user") === "guvvalachaitanya8" ||
+        hash.includes("chaitanya-admin-portal") ||
+        hash.includes("portal-guvvala");
+
+      if (hasSecretKey) {
+        localStorage.setItem("device_authorized_admin", "true");
+        setCurrentView("admin");
+        setActiveDisaster(null);
+      } else {
+        const isAuthorized = localStorage.getItem("device_authorized_admin") === "true";
+        if (isAuthorized) {
+          if (path === "/admin" || hash === "#admin" || hash === "/admin" || path.startsWith("/admin")) {
+            setCurrentView("admin");
+            setActiveDisaster(null);
+          }
+        } else {
+          // Force back to home view if trying to access admin view without authorization
+          if (path === "/admin" || hash === "#admin" || hash === "/admin" || path.startsWith("/admin") || currentView === "admin") {
+            setCurrentView("home");
+            setActiveDisaster(null);
+          }
+        }
+      }
     }
 
     // Fetch live configurations to display homepage edits instantly
@@ -63,8 +117,58 @@ export default function App() {
     trackHit();
   }, [currentView]);
 
+  // Support full back/forward browser history navigation for isolated routes
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = typeof window !== "undefined" ? window.location.pathname : "";
+      const hash = typeof window !== "undefined" ? window.location.hash : "";
+      const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+
+      const hasSecretKey = urlParams ? (
+        urlParams.get("portal") === "chaitanya-private-admin" ||
+        urlParams.get("admin_key") === "guvvalachaitanya8" ||
+        urlParams.get("user") === "guvvalachaitanya8" ||
+        hash.includes("chaitanya-admin-portal") ||
+        hash.includes("portal-guvvala")
+      ) : false;
+
+      const isAuthorized = localStorage.getItem("device_authorized_admin") === "true" || hasSecretKey;
+
+      if (isAuthorized && (path === "/admin" || hash === "#admin" || hash === "/admin" || path.startsWith("/admin"))) {
+        setCurrentView("admin");
+        setActiveDisaster(null);
+      } else if (path === "/about") {
+        setCurrentView("about");
+        setActiveDisaster(null);
+      } else if (path === "/privacy") {
+        setCurrentView("privacy");
+        setActiveDisaster(null);
+      } else if (path === "/contact") {
+        setCurrentView("contact");
+        setActiveDisaster(null);
+      } else {
+        setCurrentView("home");
+        setActiveDisaster(null);
+      }
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("popstate", handlePopState);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("popstate", handlePopState);
+      }
+    };
+  }, []);
+
   // Router dispatcher
   const handleNavigate = (view: "home" | "about" | "privacy" | "contact" | "admin") => {
+    const isAuthorized = typeof window !== "undefined" && localStorage.getItem("device_authorized_admin") === "true";
+    if (view === "admin" && !isAuthorized) {
+      // Ignore navigation to admin if unauthorized on this device
+      return;
+    }
+
     setCurrentView(view);
     setActiveDisaster(null); // return to home when clicking navbar
     if (view === "admin") {
@@ -130,23 +234,11 @@ export default function App() {
 
   const { title: pageTitle, description: pageDescription } = getHelmetMeta();
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
-      
-      {/* Dynamic SEO / AdSense Metadata Helmet */}
-      <Helmet title={pageTitle} description={pageDescription} />
-      {/* Shared Global Top Navbar Brand (Admin view hides navbar for modularity & focus) */}
-      {currentView !== "admin" && (
-        <NatureNavbar 
-          currentView={activeDisaster ? "simulator" : currentView} 
-          onNavigate={handleNavigate} 
-        />
-      )}
-
-      {/* Main Container */}
-      <main className="flex-grow">
-        {currentView === "admin" ? (
-          /* Secure Admin View mapping protected with JWT token gating */
+  if (currentView === "admin") {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
+        <Helmet title={pageTitle} description={pageDescription} />
+        <main className="flex-grow">
           <AdminProtectedRoute 
             onBack={handleReturnHome}
             onAuthenticated={(token) => {
@@ -160,7 +252,25 @@ export default function App() {
               }}
             />
           </AdminProtectedRoute>
-        ) : activeDisaster ? (
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
+      
+      {/* Dynamic SEO / AdSense Metadata Helmet */}
+      <Helmet title={pageTitle} description={pageDescription} />
+      {/* Shared Global Top Navbar Brand */}
+      <NatureNavbar 
+        currentView={activeDisaster ? "simulator" : currentView} 
+        onNavigate={handleNavigate} 
+      />
+
+      {/* Main Container */}
+      <main className="flex-grow">
+        {activeDisaster ? (
           /* Separate Disaster lab view */
           <DisasterSimulator 
             profile={activeDisaster} 
@@ -274,12 +384,6 @@ export default function App() {
             >
               <Mail className="h-3 w-3" />
               Contact
-            </button>
-            <button 
-              onClick={() => handleNavigate("admin")} 
-              className="hover:text-amber-400 transition-colors flex items-center gap-1 cursor-pointer font-semibold"
-            >
-              🔒 Admin Panel
             </button>
           </div>
         </div>
