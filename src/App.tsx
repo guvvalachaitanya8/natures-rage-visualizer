@@ -282,31 +282,7 @@ export default function App() {
             {currentView === "home" && (
               <div className="py-12 space-y-16">
                 
-                {/* 6 Disaster card blocks grid */}
-                <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                  <div className="flex items-center justify-between border-b border-slate-850 pb-4 mb-8">
-                    <div>
-                      <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-                        <Compass className="h-5 w-5 text-emerald-400" />
-                        Select a Disruption Vector Model
-                      </h2>
-                      <p className="text-xs text-slate-500 font-medium">Click a card profile to open its dynamic parameters control page.</p>
-                    </div>
-                    <span className="text-xs font-mono text-slate-500">6 Profiles Instantiated</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                    {DISASTER_PROFILES.map((profile) => (
-                      <DisasterCard
-                        key={profile.type}
-                        profile={profile}
-                        onClick={() => handleSelectDisaster(profile)}
-                      />
-                    ))}
-                  </div>
-                </section>
-
-                {/* Hero research section */}
+                {/* Hero research section at the top of the portal */}
                 <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative overflow-hidden select-text">
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[350px] w-[350px] rounded-full border border-slate-900/40 pointer-events-none -z-10" />
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[550px] w-[550px] rounded-full border border-slate-900/20 pointer-events-none -z-10" />
@@ -332,6 +308,30 @@ export default function App() {
                     <span>🌊 Hydrological</span>
                     <span className="text-slate-800">•</span>
                     <span>🌪️ Climatological</span>
+                  </div>
+                </section>
+
+                {/* 6 Disaster card blocks grid */}
+                <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  <div className="flex items-center justify-between border-b border-slate-850 pb-4 mb-8">
+                    <div>
+                      <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                        <Compass className="h-5 w-5 text-emerald-400" />
+                        Select a Disruption Vector Model
+                      </h2>
+                      <p className="text-xs text-slate-500 font-medium">Click a card profile to open its dynamic parameters control page.</p>
+                    </div>
+                    <span className="text-xs font-mono text-slate-500">6 Profiles Instantiated</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    {DISASTER_PROFILES.map((profile) => (
+                      <DisasterCard
+                        key={profile.type}
+                        profile={profile}
+                        onClick={() => handleSelectDisaster(profile)}
+                      />
+                    ))}
                   </div>
                 </section>
 

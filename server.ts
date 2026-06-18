@@ -494,6 +494,22 @@ app.post("/api/analytics/track", (req, res) => {
   res.json({ status: "success" });
 });
 
+// GET endpoint to securely retrieve generated mockups/diagrams for download
+app.get("/api/assets/images/:filename", (req, res) => {
+  const filename = req.params.filename;
+  if (!filename || filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
+    return res.status(400).json({ status: "error", message: "Invalid filepath parameter" });
+  }
+  const filePath = path.join(process.cwd(), "src", "assets", "images", filename);
+  if (fs.existsSync(filePath)) {
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Type", "image/jpeg");
+    res.sendFile(filePath);
+  } else {
+    res.status(404).json({ status: "error", message: "Assigned illustration not stored" });
+  }
+});
+
 // GET editorial configurations (For displaying customizable Hero titles)
 app.get("/api/config", (req, res) => {
   const dynamicConfig = getAdminConfig();
