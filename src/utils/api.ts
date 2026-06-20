@@ -252,16 +252,11 @@ export async function apiFetch(url: string, options?: RequestInit): Promise<Resp
 
   try {
     if (url === "/api/config") {
-      const savedConfig = localStorage.getItem("admin_config");
       responseData = {
         status: "success",
-        data: savedConfig ? JSON.parse(savedConfig) : DEFAULT_CONFIG
+        data: DEFAULT_CONFIG
       };
     } else if (url === "/api/analytics/track" && method === "POST") {
-      const raw = localStorage.getItem("analytics_store");
-      const obj = raw ? JSON.parse(raw) : DEFAULT_ANALYTICS;
-      obj.visits = (obj.visits || 125) + 1;
-      localStorage.setItem("analytics_store", JSON.stringify(obj));
       responseData = { status: "success" };
     } else if (url === "/api/feedback") {
       if (method === "GET") {
@@ -298,55 +293,6 @@ export async function apiFetch(url: string, options?: RequestInit): Promise<Resp
       const finalType = disasterType || type || "earthquake";
       const sim = generateProceduralSimulation(finalType, intensity || "5-6", style || "cartoon");
       responseData = sim;
-
-      // Track disaster interaction popularity in analytics
-      const raw = localStorage.getItem("analytics_store");
-      const obj = raw ? JSON.parse(raw) : DEFAULT_ANALYTICS;
-      if (!obj.popularDisasters) obj.popularDisasters = {};
-      const key = String(finalType).toLowerCase();
-      obj.popularDisasters[key] = (obj.popularDisasters[key] || 0) + 1;
-      localStorage.setItem("analytics_store", JSON.stringify(obj));
-    } else if (url === "/api/admin/login" && method === "POST") {
-      const bodyObj = options?.body ? JSON.parse(options.body as string) : {};
-      const { username, password } = bodyObj;
-      if (username === "admin" && (password === "admin" || password === "password" || password === "admin123")) {
-        responseData = { status: "success", token: "local_sandbox_override_jwt_token" };
-      } else {
-        status = 401;
-        responseData = { status: "error", message: "Access denied. Invalid administrator credentials." };
-      }
-    } else if (url === "/api/admin/analytics") {
-      const raw = localStorage.getItem("analytics_store");
-      responseData = {
-        status: "success",
-        data: raw ? JSON.parse(raw) : DEFAULT_ANALYTICS
-      };
-    } else if (url === "/api/admin/config") {
-      if (method === "GET") {
-        const savedConfig = localStorage.getItem("admin_config");
-        responseData = {
-          status: "success",
-          data: savedConfig ? JSON.parse(savedConfig) : DEFAULT_CONFIG
-        };
-      } else if (method === "POST") {
-        const bodyObj = options?.body ? JSON.parse(options.body as string) : {};
-        const { heroTitle, heroDescription, aiPromptOverride } = bodyObj;
-        const current = {
-          heroTitle: String(heroTitle).trim(),
-          heroDescription: String(heroDescription).trim(),
-          aiPromptOverride: String(aiPromptOverride || "").trim()
-        };
-        localStorage.setItem("admin_config", JSON.stringify(current));
-        responseData = { status: "success", message: "Saved!", data: current };
-      }
-    } else if (url.startsWith("/api/admin/feedback/") && method === "DELETE") {
-      const parts = url.split("/");
-      const id = parts[parts.length - 1];
-      const savedFeedback = localStorage.getItem("feedback_store");
-      let list: Feedback[] = savedFeedback ? JSON.parse(savedFeedback) : [...DEFAULT_FEEDBACKS];
-      list = list.filter(f => f.id !== id);
-      localStorage.setItem("feedback_store", JSON.stringify(list));
-      responseData = { status: "success" };
     } else {
       status = 404;
       responseData = { status: "error", message: "Endpoint not found" };

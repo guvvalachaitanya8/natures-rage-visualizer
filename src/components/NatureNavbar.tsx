@@ -1,8 +1,8 @@
 import { Compass, Globe, HelpCircle, Shield, Mail, Lock } from "lucide-react";
 
 interface NatureNavbarProps {
-  currentView: "home" | "about" | "privacy" | "contact" | "admin" | string;
-  onNavigate: (view: "home" | "about" | "privacy" | "contact" | "admin") => void;
+  currentView: "home" | "about" | "privacy" | "contact" | string;
+  onNavigate: (view: "home" | "about" | "privacy" | "contact") => void;
 }
 
 export default function NatureNavbar({ currentView, onNavigate }: NatureNavbarProps) {

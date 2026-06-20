@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Runtime Local Configuration & Dynamic JSON Database Stores
+feedback_store.json

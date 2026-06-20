@@ -3,8 +3,6 @@ import NatureNavbar from "./components/NatureNavbar";
 import DisasterCard from "./components/DisasterCard";
 import DisasterSimulator from "./components/DisasterSimulator";
 import FeedbackSection from "./components/FeedbackSection";
-import AdminDashboard from "./components/AdminDashboard";
-import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import Helmet from "./components/Helmet";
 import { AboutView, PrivacyView, ContactView } from "./components/AboutPrivacyContactViews";
 import { DISASTER_PROFILES } from "./data";
@@ -13,37 +11,18 @@ import { Sparkles, Compass, HelpCircle, Shield, Mail } from "lucide-react";
 import { apiFetch } from "./utils/api";
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<"home" | "about" | "privacy" | "contact" | "admin">(() => {
+  const [currentView, setCurrentView] = useState<"home" | "about" | "privacy" | "contact">(() => {
     if (typeof window !== "undefined") {
       const path = window.location.pathname;
-      const hash = window.location.hash;
-      const urlParams = new URLSearchParams(window.location.search);
-
-      // Check for secret trigger
-      const hasSecretKey = 
-        urlParams.get("portal") === "chaitanya-private-admin" ||
-        urlParams.get("admin_key") === "guvvalachaitanya8" ||
-        urlParams.get("user") === "guvvalachaitanya8" ||
-        hash.includes("chaitanya-admin-portal") ||
-        hash.includes("portal-guvvala");
-
-      if (hasSecretKey) {
-        localStorage.setItem("device_authorized_admin", "true");
-        return "admin";
-      }
-
-      const isAuthorized = localStorage.getItem("device_authorized_admin") === "true";
-      if (isAuthorized) {
-        if (path === "/admin" || hash === "#admin" || hash === "/admin" || path.startsWith("/admin")) {
-          return "admin";
-        }
-      }
+      if (path === "/about") return "about";
+      if (path === "/privacy") return "privacy";
+      if (path === "/contact") return "contact";
     }
     return "home";
   });
   const [activeDisaster, setActiveDisaster] = useState<DisasterProfile | null>(null);
 
-  // Dynamic layout texts fetched from admin configuration store
+  // Dynamic layout texts fetched from backend configuration store
   const [heroTitle, setHeroTitle] = useState<string>("Nature's Destructive Phases");
   const [heroDescription, setHeroDescription] = useState<string>(
     "Operate dynamic 10-second AI-powered simulations of Earth's extreme geophysical transformations. Toggle visual styles directly from our research vectors between clean schematic representations and high-fidelity volumetric particle systems."
@@ -51,39 +30,6 @@ export default function App() {
 
   // Handle Dynamic Editorial Configuration & Page View Tracking
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const path = window.location.pathname;
-      const hash = window.location.hash;
-      const urlParams = new URLSearchParams(window.location.search);
-
-      const hasSecretKey = 
-        urlParams.get("portal") === "chaitanya-private-admin" ||
-        urlParams.get("admin_key") === "guvvalachaitanya8" ||
-        urlParams.get("user") === "guvvalachaitanya8" ||
-        hash.includes("chaitanya-admin-portal") ||
-        hash.includes("portal-guvvala");
-
-      if (hasSecretKey) {
-        localStorage.setItem("device_authorized_admin", "true");
-        setCurrentView("admin");
-        setActiveDisaster(null);
-      } else {
-        const isAuthorized = localStorage.getItem("device_authorized_admin") === "true";
-        if (isAuthorized) {
-          if (path === "/admin" || hash === "#admin" || hash === "/admin" || path.startsWith("/admin")) {
-            setCurrentView("admin");
-            setActiveDisaster(null);
-          }
-        } else {
-          // Force back to home view if trying to access admin view without authorization
-          if (path === "/admin" || hash === "#admin" || hash === "/admin" || path.startsWith("/admin") || currentView === "admin") {
-            setCurrentView("home");
-            setActiveDisaster(null);
-          }
-        }
-      }
-    }
-
     // Fetch live configurations to display homepage edits instantly
     const loadConfig = async () => {
       try {
@@ -121,23 +67,8 @@ export default function App() {
   useEffect(() => {
     const handlePopState = () => {
       const path = typeof window !== "undefined" ? window.location.pathname : "";
-      const hash = typeof window !== "undefined" ? window.location.hash : "";
-      const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
 
-      const hasSecretKey = urlParams ? (
-        urlParams.get("portal") === "chaitanya-private-admin" ||
-        urlParams.get("admin_key") === "guvvalachaitanya8" ||
-        urlParams.get("user") === "guvvalachaitanya8" ||
-        hash.includes("chaitanya-admin-portal") ||
-        hash.includes("portal-guvvala")
-      ) : false;
-
-      const isAuthorized = localStorage.getItem("device_authorized_admin") === "true" || hasSecretKey;
-
-      if (isAuthorized && (path === "/admin" || hash === "#admin" || hash === "/admin" || path.startsWith("/admin"))) {
-        setCurrentView("admin");
-        setActiveDisaster(null);
-      } else if (path === "/about") {
+      if (path === "/about") {
         setCurrentView("about");
         setActiveDisaster(null);
       } else if (path === "/privacy") {
@@ -162,20 +93,10 @@ export default function App() {
   }, []);
 
   // Router dispatcher
-  const handleNavigate = (view: "home" | "about" | "privacy" | "contact" | "admin") => {
-    const isAuthorized = typeof window !== "undefined" && localStorage.getItem("device_authorized_admin") === "true";
-    if (view === "admin" && !isAuthorized) {
-      // Ignore navigation to admin if unauthorized on this device
-      return;
-    }
-
+  const handleNavigate = (view: "home" | "about" | "privacy" | "contact") => {
     setCurrentView(view);
     setActiveDisaster(null); // return to home when clicking navbar
-    if (view === "admin") {
-      window.history.pushState(null, "", "/admin");
-    } else {
-      window.history.pushState(null, "", "/");
-    }
+    window.history.pushState(null, "", view === "home" ? "/" : `/${view}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -187,10 +108,7 @@ export default function App() {
   const handleReturnHome = () => {
     setActiveDisaster(null);
     setCurrentView("home");
-    // Clear admin hashes on return
-    if (window.location.pathname === "/admin" || window.location.hash.includes("admin")) {
-      window.history.pushState(null, "", "/");
-    }
+    window.history.pushState(null, "", "/");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -214,14 +132,9 @@ export default function App() {
           description: "Explore the security guidelines, data protection protocols, and cookie optimization policies guiding scientific telemetry validation at TerraForce."
         };
       case "contact":
-        return {
+         return {
           title: "Establish Institutional Contact | TerraForce Portal",
           description: "Connect with our research division, clear executive compliance checks, or file scientific comments regarding geological/meteorological modeling frameworks."
-        };
-      case "admin":
-        return {
-          title: "Aegis Command Center - Secure Credentials Gateway | TerraForce",
-          description: "Access control telemetry, edit live hero layouts, and monitor suspect network behavior on the secure administrative port authority matrix."
         };
       case "home":
       default:
@@ -233,29 +146,6 @@ export default function App() {
   };
 
   const { title: pageTitle, description: pageDescription } = getHelmetMeta();
-
-  if (currentView === "admin") {
-    return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
-        <Helmet title={pageTitle} description={pageDescription} />
-        <main className="flex-grow">
-          <AdminProtectedRoute 
-            onBack={handleReturnHome}
-            onAuthenticated={(token) => {
-              // Secured connection confirmed
-            }}
-          >
-            <AdminDashboard 
-              onBack={handleReturnHome} 
-              onLogout={() => {
-                handleReturnHome();
-              }}
-            />
-          </AdminProtectedRoute>
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">

@@ -3,8 +3,6 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import fs from "fs";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
 
 const app = express();
 const PORT = 3000;
@@ -13,11 +11,6 @@ app.use(express.json());
 
 // IN-MEMORY / JSON STORAGE PATHS
 const FEEDBACK_STORE_FILE = path.join(process.cwd(), "feedback_store.json");
-const ADMIN_CONFIG_FILE = path.join(process.cwd(), "admin_config.json");
-const ANALYTICS_STORE_FILE = path.join(process.cwd(), "analytics_store.json");
-
-// JWT secret
-const JWT_SECRET = process.env.JWT_SECRET || "supersecurejwtsecretkey";
 
 // FEEDBACK INTERFACE & DATA HANDLING
 interface Feedback {
@@ -74,40 +67,18 @@ function saveFeedback(feedback: Feedback) {
   }
 }
 
-// DYNAMIC CONFIGURATION FOR HOMEPAGE EDITS (ADMIN ACCESSIBLE)
-interface AdminConfig {
-  heroTitle: string;
-  heroDescription: string;
-  aiPromptOverride: string;
+// DYNAMIC CONFIGURATION FOR HOMEPAGE EDITS
+const DEFAULT_CONFIG = {
+  heroTitle: "Nature's Destructive Phases",
+  heroDescription: "Operate dynamic 10-second AI-powered simulations of Earth's extreme geophysical transformations. Toggle visual styles directly from our research vectors between clean schematic representations and high-fidelity volumetric particle systems.",
+  aiPromptOverride: ""
+};
+
+function getAppConfig() {
+  return DEFAULT_CONFIG;
 }
 
-function getAdminConfig(): AdminConfig {
-  try {
-    if (fs.existsSync(ADMIN_CONFIG_FILE)) {
-      const data = fs.readFileSync(ADMIN_CONFIG_FILE, "utf-8");
-      return JSON.parse(data);
-    }
-  } catch (err) {
-    console.error("Reading admin config failed, returning default parameters", err);
-  }
-  const default_config = {
-    heroTitle: "Nature's Destructive Phases",
-    heroDescription: "Operate dynamic 10-second AI-powered simulations of Earth's extreme geophysical transformations. Toggle visual styles directly from our research vectors between clean schematic representations and high-fidelity volumetric particle systems.",
-    aiPromptOverride: ""
-  };
-  fs.writeFileSync(ADMIN_CONFIG_FILE, JSON.stringify(default_config, null, 2), "utf-8");
-  return default_config;
-}
-
-function saveAdminConfig(config: AdminConfig) {
-  try {
-    fs.writeFileSync(ADMIN_CONFIG_FILE, JSON.stringify(config, null, 2), "utf-8");
-  } catch (err) {
-    console.error("Failed to write dynamic UI configuration:", err);
-  }
-}
-
-// REAL-TIME ANALYTICS SYSTEM
+// REAL-TIME ANALYTICS SYSTEM (IN-MEMORY)
 interface SuspiciousActivity {
   timestamp: string;
   ip: string;
@@ -122,139 +93,31 @@ interface AnalyticsStore {
   suspiciousActivity: SuspiciousActivity[];
 }
 
+let inMemoryAnalytics: AnalyticsStore = {
+  visits: 125,
+  popularDisasters: { earthquake: 18, volcano: 14, tsunami: 9, cyclone: 8, tornado: 5, flood: 3 },
+  failedLoginAttempts: 0,
+  suspiciousActivity: []
+};
+
 function getAnalytics(): AnalyticsStore {
-  try {
-    if (fs.existsSync(ANALYTICS_STORE_FILE)) {
-      const data = fs.readFileSync(ANALYTICS_STORE_FILE, "utf-8");
-      return JSON.parse(data);
-    }
-  } catch (err) {
-    console.error("Error reading analytics metadata file, using standard starter map", err);
-  }
-  const initial: AnalyticsStore = {
-    visits: 125,
-    popularDisasters: { earthquake: 18, volcano: 14, tsunami: 9, cyclone: 8, tornado: 5, flood: 3 },
-    failedLoginAttempts: 0,
-    suspiciousActivity: []
-  };
-  fs.writeFileSync(ANALYTICS_STORE_FILE, JSON.stringify(initial, null, 2), "utf-8");
-  return initial;
+  return inMemoryAnalytics;
 }
 
 function saveAnalytics(analytics: AnalyticsStore) {
-  try {
-    fs.writeFileSync(ANALYTICS_STORE_FILE, JSON.stringify(analytics, null, 2), "utf-8");
-  } catch (err) {
-    console.error("Failed to save analytics metadata:", err);
-  }
+  inMemoryAnalytics = analytics;
 }
 
 function recordPageView() {
-  try {
-    const ads = getAnalytics();
-    ads.visits += 1;
-    saveAnalytics(ads);
-  } catch (err) {
-    console.error("Parsing telemetry view increment failed:", err);
-  }
+  inMemoryAnalytics.visits += 1;
 }
 
 function recordDisasterInteraction(disasterType: string) {
-  try {
-    const key = String(disasterType).toLowerCase();
-    const ads = getAnalytics();
-    if (!ads.popularDisasters) ads.popularDisasters = {};
-    ads.popularDisasters[key] = (ads.popularDisasters[key] || 0) + 1;
-    saveAnalytics(ads);
-  } catch (err) {
-    console.error("Incrementing specific disaster frequency failed:", err);
-  }
+  const key = String(disasterType).toLowerCase();
+  if (!inMemoryAnalytics.popularDisasters) inMemoryAnalytics.popularDisasters = {};
+  inMemoryAnalytics.popularDisasters[key] = (inMemoryAnalytics.popularDisasters[key] || 0) + 1;
 }
 
-// SECURITY ALERTS SYSTEM (EMAIL & TWILIO MUTE DISPATCH)
-async function triggerSuspiciousAlert(ip: string, reason: string) {
-  const timestamp = new Date().toISOString();
-  console.log(`\n🚨 [SECURITY THREAT CRITICAL] ${reason.toUpperCase()}`);
-  console.log(`  IP ORIGIN  : ${ip}`);
-  console.log(`  TIMESTAMP  : ${timestamp}`);
-  console.log(`  THREAT LOG : Immediate verification recommended.`);
-  console.log(`--------------------------------------------------\n`);
-
-  // Record details in custom threat logs
-  try {
-    const ads = getAnalytics();
-    ads.suspiciousActivity.unshift({
-      timestamp,
-      ip,
-      activityType: "Suspicious Login Violation",
-      details: reason
-    });
-    saveAnalytics(ads);
-  } catch (err) {
-    console.error("Threat writing logging failed:", err);
-  }
-
-  // Parameterized secure email triggers
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  if (smtpUser && smtpPass) {
-    console.log(`[SMTP TRANSMITTED] Automated alert email fired to institutional admin target [${smtpUser}] successfully.`);
-  } else {
-    console.log(`[SMTP WARNING] Credential configuration keys 'SMTP_USER' or 'SMTP_PASS' are missing. Firing fallback console alert.`);
-  }
-
-  // Twilio SMS/WhatsApp integration
-  const twilioSid = process.env.TWILIO_ACCOUNT_SID;
-  const twilioToken = process.env.TWILIO_AUTH_TOKEN;
-  if (twilioSid && twilioToken) {
-    console.log(`[TWILIO TRANSMITTED] Automated real-time warning WhatsApp dispatch queued for administrator contact.`);
-  } else {
-    console.log(`[TWILIO WARNING] Credential configuration keys 'TWILIO_ACCOUNT_SID' or 'TWILIO_AUTH_TOKEN' are empty.`);
-  }
-}
-
-// SECURITY RATE LIMITERS & HELMET SECURITY CONTEXT
-const loginAttemptsMap = new Map<string, { count: number; lastAttempt: number }>();
-
-function getClientIp(req: any): string {
-  const rawIp = req.ip || req.headers["x-forwarded-for"] || "127.0.0.1";
-  return Array.isArray(rawIp) ? rawIp[0] : String(rawIp);
-}
-
-function rateLimitLogin(req: any, res: any, next: any) {
-  const ip = getClientIp(req);
-  const now = Date.now();
-  const attempt = loginAttemptsMap.get(ip);
-
-  if (attempt) {
-    // Lock out temporary blocks after multiple brute force failures
-    if (attempt.count >= 8 && now - attempt.lastAttempt < 300 * 1000) {
-      triggerSuspiciousAlert(ip, `Rate limit brute-force protection block triggered (Multiple unsuccessful admin code match checks).`);
-      return res.status(429).json({ 
-        status: "error", 
-        message: "Maximum authentication rate cap exceeded. Terminal access locked down for 5 minutes." 
-      });
-    }
-  }
-  next();
-}
-
-// MIDDLEWARE AUTHENTICATION PARSER
-function authenticateAdmin(req: any, res: any, next: any) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ status: "error", message: "Unauthorized credentials state." });
-  }
-
-  const token = authHeader.split(" ")[1];
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.admin = decoded;
-    next();
-  } catch (err) {
-    return res.status(401).json({ status: "error", message: "Invalid or expired session key." });
-  }
-}
 
 // LAZY LAUNCHER OF GEMINI AI CLIENT
 let aiClient: GoogleGenAI | null = null;
@@ -512,7 +375,7 @@ app.get("/api/assets/images/:filename", (req, res) => {
 
 // GET editorial configurations (For displaying customizable Hero titles)
 app.get("/api/config", (req, res) => {
-  const dynamicConfig = getAdminConfig();
+  const dynamicConfig = getAppConfig();
   res.json({ status: "success", data: dynamicConfig });
 });
 
@@ -544,84 +407,6 @@ app.post("/api/feedback", (req, res) => {
   res.json({ status: "success", data: newFeedback });
 });
 
-// SECURE ADMINISTRATIVE POST ROUTE - VERIFIED JWT LOGIN
-app.post("/api/admin/login", rateLimitLogin, async (req, res) => {
-  const { username, password } = req.body;
-  const ip = getClientIp(req);
-
-  const targetUsername = "admin";
-  // Read configured environment secret or fall back to safe customizable hash admin123
-  const targetPasswordHash = bcrypt.hashSync(process.env.ADMIN_PASSWORD || "admin123", 10);
-
-  if (username === targetUsername && bcrypt.compareSync(password, targetPasswordHash)) {
-    // Clear failed logins on successful authentication
-    const ipRecord = loginAttemptsMap.get(ip);
-    if (ipRecord) loginAttemptsMap.delete(ip);
-
-    // Issue standard JWT
-    const token = jwt.sign({ username: targetUsername, originIp: ip }, JWT_SECRET, { expiresIn: "10h" });
-    return res.json({ status: "success", token });
-  } else {
-    // Audit failed credential attempt count
-    const attempt = loginAttemptsMap.get(ip) || { count: 0, lastAttempt: Date.now() };
-    attempt.count += 1;
-    attempt.lastAttempt = Date.now();
-    loginAttemptsMap.set(ip, attempt);
-
-    // Save statistics on failed logins
-    const ads = getAnalytics();
-    ads.failedLoginAttempts += 1;
-    saveAnalytics(ads);
-
-    if (attempt.count >= 3) {
-      await triggerSuspiciousAlert(ip, `Repeated failed administrative passcode attempts detected (${attempt.count} failed attempts on port authority credentials).`);
-    }
-
-    return res.status(401).json({ status: "error", message: "Access denied. Invalid administrator credentials." });
-  }
-});
-
-// GET admin page telemetry (Admin authenticated)
-app.get("/api/admin/analytics", authenticateAdmin, (req, res) => {
-  const ads = getAnalytics();
-  res.json({ status: "success", data: ads });
-});
-
-// GET dynamic designer hero configs (Admin authenticated)
-app.get("/api/admin/config", authenticateAdmin, (req, res) => {
-  const config = getAdminConfig();
-  res.json({ status: "success", data: config });
-});
-
-// POST update dynamic configurations (Admin authenticated)
-app.post("/api/admin/config", authenticateAdmin, (req, res) => {
-  const { heroTitle, heroDescription, aiPromptOverride } = req.body;
-  if (!heroTitle || !heroDescription) {
-    return res.status(400).json({ status: "error", message: "Hero Title and Hero Description parameters are required." });
-  }
-
-  const current = {
-    heroTitle: String(heroTitle).trim(),
-    heroDescription: String(heroDescription).trim(),
-    aiPromptOverride: String(aiPromptOverride || "").trim()
-  };
-
-  saveAdminConfig(current);
-  res.json({ status: "success", message: "Administrative guidelines written successfully to disk.", data: current });
-});
-
-// DELETE moderation action on user feedback row (Admin authenticated)
-app.delete("/api/admin/feedback/:id", authenticateAdmin, (req, res) => {
-  const { id } = req.params;
-  try {
-    const list = getFeedbackList();
-    const updated = list.filter(row => row.id !== id);
-    fs.writeFileSync(FEEDBACK_STORE_FILE, JSON.stringify(updated, null, 2), "utf-8");
-    res.json({ status: "success", message: "Feedback advisory row successfully deleted from disk." });
-  } catch (err: any) {
-    res.status(500).json({ status: "error", message: err.message });
-  }
-});
 
 // POST core simulation solver - leverages Gemini API or returns structured physical telemetry models
 app.post("/api/simulate", async (req, res) => {
@@ -641,8 +426,8 @@ app.post("/api/simulate", async (req, res) => {
   }
 
   try {
-    // Check if the admin defined dynamic instruction overrides to inject into the model context
-    const config = getAdminConfig();
+    // Check if there are defined dynamic instruction overrides to inject into the model context
+    const config = getAppConfig();
     const systemDirectives = config.aiPromptOverride 
       ? `Additional design rules to respect: ${config.aiPromptOverride}`
       : "";
@@ -765,7 +550,7 @@ async function bootstrapServer() {
     });
     app.use(vite.middlewares);
 
-    // Explicit SPA HTML routing fallback in development to prevent 404s on browser reloads of /admin
+    // Explicit SPA HTML routing fallback in development to prevent 404s on browser reloads of details / custom pages
     app.get("*", async (req, res, next) => {
       if (req.originalUrl.startsWith("/api") || req.originalUrl.includes(".")) {
         return next();
