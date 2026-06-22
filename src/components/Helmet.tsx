@@ -55,7 +55,7 @@ export default function Helmet({
     updateOrCreateMeta("property", "og:type", ogType);
     updateOrCreateMeta("property", "og:url", ogUrl);
     updateOrCreateMeta("property", "og:image", ogImage);
-    updateOrCreateMeta("property", "og:site_name", "TerraForce Research Portal");
+    updateOrCreateMeta("property", "og:site_name", "Nature's Rage Portal");
 
     // 4. Twitter Cards
     updateOrCreateMeta("name", "twitter:card", "summary_large_image");

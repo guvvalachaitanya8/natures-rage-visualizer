@@ -19,8 +19,8 @@ export default function NatureNavbar({ currentView, onNavigate }: NatureNavbarPr
               <Compass className="h-5 w-5 text-emerald-400 group-hover:rotate-45 transition-transform duration-300" />
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
-                TerraForce <span className="text-xs font-semibold text-emerald-400 px-1.5 py-0.5 bg-emerald-950/60 rounded border border-emerald-900">Research</span>
+              <h1 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
+                Nature's Rage <span className="text-xs font-semibold text-emerald-400 px-1.5 py-0.5 bg-emerald-950/60 rounded border border-emerald-900">Simulator</span>
               </h1>
               <p className="text-[10px] text-slate-400 uppercase tracking-widest hidden sm:block">Destructive Phases Simulator</p>
             </div>

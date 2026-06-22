@@ -1715,7 +1715,7 @@ export default function DisasterSimulator({ profile, onBack }: DisasterSimulator
             </div>
 
             <div className="mt-8 pt-4 border-t border-slate-800 text-[10px] text-slate-500 font-mono flex items-center justify-between">
-              <span>TerraForce Engine v2.5</span>
+              <span>Nature's Rage Engine v2.5</span>
               <span>UTC Localized</span>
             </div>
           </div>

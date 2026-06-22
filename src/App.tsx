@@ -116,30 +116,30 @@ export default function App() {
   const getHelmetMeta = () => {
     if (activeDisaster) {
       return {
-        title: `${activeDisaster.title} Core Simulation Lab | TerraForce`,
+        title: `${activeDisaster.title} Core Simulation Lab | Nature's Rage`,
         description: `Simulate high-fidelity physical models of ${activeDisaster.title.toLowerCase()}. ${activeDisaster.shortDescription} Analyze seismological patterns, wind currents, climate forecasts, and direct protective guidance.`
       };
     }
     switch (currentView) {
       case "about":
         return {
-          title: "About Advanced Geological Simulation Hub | TerraForce",
-          description: "Meet TerraForce, the premier research portal dedicated to scientific 10-second simulations of complex geophysical transformations and extreme natural disaster events."
+          title: "About Advanced Geological Simulation Hub | Nature's Rage",
+          description: "Meet Nature's Rage, the premier design portal dedicated to scientific 10-second simulations of complex geophysical transformations and extreme natural disaster events."
         };
       case "privacy":
         return {
-          title: "Privacy Shield & Security Parameters | TerraForce",
-          description: "Explore the security guidelines, data protection protocols, and cookie optimization policies guiding scientific telemetry validation at TerraForce."
+          title: "Privacy Shield & Security Parameters | Nature's Rage",
+          description: "Explore the security guidelines, data protection protocols, and cookie optimization policies guiding scientific telemetry validation at Nature's Rage."
         };
       case "contact":
          return {
-          title: "Establish Institutional Contact | TerraForce Portal",
-          description: "Connect with our research division, clear executive compliance checks, or file scientific comments regarding geological/meteorological modeling frameworks."
+          title: "Establish Institutional Contact | Nature's Rage Portal",
+          description: "Connect with our design division, clear executive compliance checks, or file scientific comments regarding geological/meteorological modeling frameworks."
         };
       case "home":
       default:
         return {
-          title: "TerraForce Portal - Advanced 10-Second Planetary Natural Disaster Simulators",
+          title: "Nature's Rage Portal - Advanced 10-Second Planetary Natural Disaster Simulators",
           description: "Operate high-fidelity AI-powered physical simulations of major Earth transformations including Volcano Eruptions, Tsunamis, Earthquakes, Cyclones, and more."
         };
     }
@@ -263,7 +263,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
             <Compass className="h-4 w-4 text-emerald-500" />
-            <span className="font-bold text-slate-300">TerraForce Research Portal</span>
+            <span className="font-bold text-slate-300">Nature's Rage Portal</span>
             <span className="text-slate-800">|</span>
             <span>Planetary Sciences Division © 2026</span>
           </div>

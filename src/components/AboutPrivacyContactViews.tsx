@@ -6,8 +6,8 @@ export function AboutView() {
     <div className="max-w-4xl mx-auto px-4 py-12">
       <div className="text-center mb-10">
         <HelpCircle className="h-10 w-10 text-emerald-400 mx-auto mb-3" />
-        <h2 className="text-3xl font-black text-white tracking-tight">About Force of Nature</h2>
-        <p className="text-sm text-slate-400 mt-2">TerraForce is a global collaborative research consortium tracking geophysical phenomena.</p>
+        <h2 className="text-3xl font-black text-white tracking-tight">About Nature's Rage</h2>
+        <p className="text-sm text-slate-400 mt-2">Nature's Rage is a global simulation dashboard tracking violent geophysical transformations.</p>
       </div>
 
       <div className="space-y-8 text-sm text-slate-300 leading-relaxed">
@@ -17,7 +17,7 @@ export function AboutView() {
             1. Core Mission & High-Fidelity Physics Models
           </h3>
           <p className="text-slate-300">
-            TerraForce Research specializes in compiling computational simulations of destructive geological and atmospheric phases. Our models allow geophysicists, urban planning teams, and university divisions to explore dynamic safety constraints and sensory decibel ranges under varied natural phenomena stresses. By synthesizing mathematical modeling matrices and predictive AI (utilizing Gemini models), we generate highly responsive representations of fluid mass velocity, thermal expansions, and fault displacement vectors.
+            Nature's Rage specializes in compiling computational simulations of destructive geological and atmospheric phases. Our models allow geophysicists, educational sectors, and enthusiast divisions to explore dynamic safety constraints and sensory decibel ranges under varied natural phenomena stresses. By synthesizing mathematical modeling matrices and predictive AI (utilizing Gemini models), we generate highly responsive representations of fluid mass velocity, thermal expansions, and fault displacement vectors.
           </p>
         </div>
 
@@ -53,14 +53,14 @@ export function PrivacyView() {
       <div className="text-center mb-10">
         <Shield className="h-10 w-10 text-emerald-400 mx-auto mb-3" />
         <h2 className="text-3xl font-black text-white tracking-tight">Privacy Policy</h2>
-        <p className="text-sm text-slate-400 mt-2">TerraForce Research Security and Data Transparency Standard.</p>
+        <p className="text-sm text-slate-400 mt-2">Nature's Rage Security and Data Transparency Standard.</p>
       </div>
 
       <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl space-y-6 text-sm text-slate-300 leading-relaxed">
         <div>
           <h3 className="text-base font-bold text-white mb-2 font-mono">1. Information Governance & Simulation Logs</h3>
           <p className="text-slate-400 text-xs">
-            TerraForce Research operates strictly under non-disclosure security standards. We do not extract user terminal parameters or personal browser credentials during the visual animation renders. Collected advisory forms, emails, and update proposals are encrypted and held in local research partitions purely to coordinate software updates. No analytical telemetry is shared or traded with commercial or target-marketing segments.
+            Nature's Rage operates strictly under non-disclosure privacy standards. We do not extract user terminal parameters or personal browser credentials during the visual animation renders. Collected advisory forms, emails, and update proposals are kept in simple storage purely to coordinate software updates. No analytical telemetry is shared or traded with commercial or target-marketing segments.
           </p>
         </div>
 
@@ -98,7 +98,7 @@ export function ContactView() {
     <div className="max-w-5xl mx-auto px-4 py-12">
       <div className="text-center mb-10">
         <Mail className="h-10 w-10 text-emerald-400 mx-auto mb-3" />
-        <h2 className="text-3xl font-black text-white tracking-tight">Contact TerraForce Lab</h2>
+        <h2 className="text-3xl font-black text-white tracking-tight">Contact Nature's Rage Team</h2>
         <p className="text-sm text-slate-400 mt-2">We coordinate research programs with global geological institutes and meteorological stations.</p>
       </div>
 
@@ -111,9 +111,9 @@ export function ContactView() {
           <div className="flex items-start gap-3 text-xs leading-relaxed text-slate-400">
             <Building className="h-4.5 w-4.5 text-emerald-400 mt-0.5 flex-shrink-0" />
             <div>
-              <p className="font-bold text-white">TerraForce Research HQ</p>
-              <p>Section 7-A, Lithospheric Survey Zone</p>
-              <p>Pacific Volcanic Crescent Division</p>
+              <p className="font-bold text-white">Nature's Rage Hub</p>
+              <p>Tectonic and Severe Weather Digital Lab</p>
+              <p>Interactive Physical Simulation Division</p>
             </div>
           </div>
 
