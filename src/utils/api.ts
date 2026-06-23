@@ -1,18 +1,49 @@
 import { Feedback, SimulationResult } from "../types";
 
+// Safe localStorage wrapper to prevent raw SecurityErrors in cookie-restricted iframe sandboxes
+const inMemoryStorage: Record<string, string> = {};
+
+function safeGetItem(key: string): string | null {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      return window.localStorage.getItem(key);
+    }
+  } catch (e) {
+    console.warn("Storage item fetch failed due to iframe cookie sandbox restriction. Using memory fallback.", e);
+  }
+  return inMemoryStorage[key] || null;
+}
+
+function safeSetItem(key: string, value: string): void {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      window.localStorage.setItem(key, value);
+      return;
+    }
+  } catch (e) {
+    console.warn("Storage item update failed due to iframe cookie sandbox restriction. Using memory fallback.", e);
+  }
+  inMemoryStorage[key] = value;
+}
+
 // Determine if we should bypass network fetches to avoid red 404 resource errors
 export function isOfflineOnly(): boolean {
   if (typeof window === "undefined") return true;
-  const hostname = window.location.hostname;
-  return !(
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname.endsWith(".run.app")
-  );
+  try {
+    const hostname = window.location.hostname;
+    return !(
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname.endsWith(".run.app")
+    );
+  } catch (e) {
+    console.warn("Unable to access window.location.hostname inside sandbox iframe context. Defaulting to safe offline view mode.", e);
+    return true;
+  }
 }
 
 // Procedural client-side generator matching server-side physics engines
-function generateProceduralSimulation(disasterType: string, intensity: string, style: string): SimulationResult {
+export function generateProceduralSimulation(disasterType: string, intensity: string, style: string): SimulationResult {
   const isCartoon = style === "cartoon";
   let decibel = "80 dB - Loud motor noise";
   let summary = `Procedural analysis of ${disasterType} at ${intensity}. This is a simulated preview representing scientific research models.`;
@@ -260,7 +291,7 @@ export async function apiFetch(url: string, options?: RequestInit): Promise<Resp
       responseData = { status: "success" };
     } else if (url === "/api/feedback") {
       if (method === "GET") {
-        const savedFeedback = localStorage.getItem("feedback_store");
+        const savedFeedback = safeGetItem("feedback_store");
         responseData = {
           status: "success",
           data: savedFeedback ? JSON.parse(savedFeedback) : DEFAULT_FEEDBACKS
@@ -280,10 +311,10 @@ export async function apiFetch(url: string, options?: RequestInit): Promise<Resp
           rating: Number(rating) || 5
         };
 
-        const savedFeedback = localStorage.getItem("feedback_store");
+        const savedFeedback = safeGetItem("feedback_store");
         const list: Feedback[] = savedFeedback ? JSON.parse(savedFeedback) : [...DEFAULT_FEEDBACKS];
         list.unshift(newFeedback);
-        localStorage.setItem("feedback_store", JSON.stringify(list));
+        safeSetItem("feedback_store", JSON.stringify(list));
 
         responseData = { status: "success", data: newFeedback };
       }

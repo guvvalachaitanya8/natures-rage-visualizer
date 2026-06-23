@@ -14,9 +14,17 @@ export default function Helmet({
   description,
   keywords = "natural disaster, simulator, planetary sciences, volcano tracker, storm simulation, tsunami metrics, earthquakes, meteorology",
   ogType = "website",
-  ogUrl = window.location.href,
+  ogUrl = "",
   ogImage = "/og-image.jpg" // fallback to absolute-relative path
 }: HelmetProps) {
+  let resolvedOgUrl = ogUrl;
+  if (!resolvedOgUrl && typeof window !== "undefined") {
+    try {
+      resolvedOgUrl = window.location.href;
+    } catch (e) {
+      resolvedOgUrl = "";
+    }
+  }
   useEffect(() => {
     // 1. Dynamic Title Management
     document.title = title;
@@ -53,7 +61,7 @@ export default function Helmet({
     updateOrCreateMeta("property", "og:title", title);
     updateOrCreateMeta("property", "og:description", description);
     updateOrCreateMeta("property", "og:type", ogType);
-    updateOrCreateMeta("property", "og:url", ogUrl);
+    updateOrCreateMeta("property", "og:url", resolvedOgUrl);
     updateOrCreateMeta("property", "og:image", ogImage);
     updateOrCreateMeta("property", "og:site_name", "Nature's Rage Portal");
 
@@ -64,9 +72,9 @@ export default function Helmet({
     updateOrCreateMeta("name", "twitter:image", ogImage);
 
     // 5. Canonical Link (Crucial for AdSense & duplicate content safety)
-    updateOrCreateLink("canonical", ogUrl);
+    updateOrCreateLink("canonical", resolvedOgUrl);
 
-  }, [title, description, keywords, ogType, ogUrl, ogImage]);
+  }, [title, description, keywords, ogType, resolvedOgUrl, ogImage]);
 
   return null; // Side-effect only component
 }

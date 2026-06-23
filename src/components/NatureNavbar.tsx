@@ -30,50 +30,50 @@ export default function NatureNavbar({ currentView, onNavigate }: NatureNavbarPr
           <nav className="flex items-center space-x-1 sm:space-x-3">
             <button
               onClick={() => onNavigate("home")}
-              className={`flex items-center space-x-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`flex items-center space-x-1.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 currentView === "home"
-                  ? "bg-slate-900 border border-slate-800 text-emerald-400"
-                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+                  ? "bg-emerald-950/40 border border-emerald-900/60 text-emerald-400"
+                  : "text-slate-400 hover:text-white hover:bg-slate-900/60 border border-transparent"
               }`}
             >
               <Globe className="h-4 w-4" />
-              <span className="hidden xs:inline">Simulators</span>
+              <span className="hidden sm:inline">Simulators</span>
             </button>
 
             <button
               onClick={() => onNavigate("about")}
-              className={`flex items-center space-x-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`flex items-center space-x-1.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 currentView === "about"
-                  ? "bg-slate-900 border border-slate-800 text-emerald-400"
-                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+                  ? "bg-emerald-950/40 border border-emerald-900/60 text-emerald-400"
+                  : "text-slate-400 hover:text-white hover:bg-slate-900/60 border border-transparent"
               }`}
             >
               <HelpCircle className="h-4 w-4" />
-              <span>About</span>
+              <span className="hidden sm:inline">About</span>
             </button>
 
             <button
               onClick={() => onNavigate("privacy")}
-              className={`flex items-center space-x-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`flex items-center space-x-1.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 currentView === "privacy"
-                  ? "bg-slate-900 border border-slate-800 text-emerald-400"
-                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+                  ? "bg-emerald-950/40 border border-emerald-900/60 text-emerald-400"
+                  : "text-slate-400 hover:text-white hover:bg-slate-900/60 border border-transparent"
               }`}
             >
               <Shield className="h-4 w-4" />
-              <span>Privacy</span>
+              <span className="hidden sm:inline">Privacy</span>
             </button>
 
             <button
               onClick={() => onNavigate("contact")}
-              className={`flex items-center space-x-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`flex items-center space-x-1.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 currentView === "contact"
-                  ? "bg-slate-900 border border-slate-800 text-emerald-400"
-                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+                  ? "bg-emerald-950/40 border border-emerald-900/60 text-emerald-400"
+                  : "text-slate-400 hover:text-white hover:bg-slate-900/60 border border-transparent"
               }`}
             >
               <Mail className="h-4 w-4" />
-              <span>Contact</span>
+              <span className="hidden sm:inline">Contact</span>
             </button>
 
           </nav>

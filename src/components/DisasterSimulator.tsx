@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { DisasterProfile, VisualStyle, SimulationResult, SimulationGraphPoint } from "../types";
-import { apiFetch } from "../utils/api";
+import { apiFetch, generateProceduralSimulation } from "../utils/api";
 import { 
   ArrowLeft, 
   Play, 
@@ -248,7 +248,19 @@ export default function DisasterSimulator({ profile, onBack }: DisasterSimulator
       }
     } catch (err: any) {
       console.warn("Simulator fetch warning:", err.message || err);
-      setConsoleLogs(prev => [...prev, `[INFO] Server compile bypassed: ${err.message || err}. Using localized backup physics.`]);
+      try {
+        const localSim = generateProceduralSimulation(profile.type, option, style);
+        setSimResult(localSim);
+        setConsoleLogs(prev => [
+          ...prev,
+          `[INFO] Server compile bypassed: ${err.message || err}.`,
+          `[DECIBEL] Local acoustic density set: ${localSim.decibel}`,
+          `[SIMULATOR] Ground sensors operational in local mode. Ready to play.`
+        ]);
+      } catch (fallbackErr: any) {
+        console.error("Local fallback generation failed:", fallbackErr);
+        setConsoleLogs(prev => [...prev, `[ERROR] Local fallback failed: ${fallbackErr.message || fallbackErr}`]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -1413,23 +1425,23 @@ export default function DisasterSimulator({ profile, onBack }: DisasterSimulator
           <div className="flex items-center gap-1.5 p-1 bg-slate-950 rounded-lg border border-slate-850">
             <button
               onClick={() => { setVisualStyle("cartoon"); }}
-              className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all ${
+              className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
                 visualStyle === "cartoon"
                   ? "bg-emerald-950 text-emerald-400 border border-emerald-900"
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              No. 1 Cartoonish Drawing
+              Schematic View
             </button>
             <button
               onClick={() => { setVisualStyle("realistic"); }}
-              className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all ${
+              className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
                 visualStyle === "realistic"
                   ? "bg-slate-800 text-white border border-slate-700"
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              No. 2 Real Visual Type
+              Realistic View
             </button>
           </div>
         </div>
@@ -1674,7 +1686,7 @@ export default function DisasterSimulator({ profile, onBack }: DisasterSimulator
                       <td className="py-2 text-slate-500 font-mono">Acoustic Load</td>
                       <td className="py-2 text-white font-semibold text-right flex items-center justify-end gap-1">
                         <Volume2 className="h-3 w-3 text-red-400" />
-                        {simResult?.decibel.split(" - ")[0] || "80 dB"}
+                        {simResult?.decibel ? simResult.decibel.split(" - ")[0] : "80 dB"}
                       </td>
                     </tr>
                     <tr>
